@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>eSIM Website Development - 13-Day Gantt Chart</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            color: #2c3e50;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .header p {
+            color: #7f8c8d;
+            font-size: 1.1rem;
+        }
+
+        .gantt-container {
+            overflow-x: auto;
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        }
+
+        .gantt-chart {
+            min-width: 1200px;
+            position: relative;
+        }
+
+        .timeline-header {
+            display: grid;
+            grid-template-columns: 300px repeat(13, 1fr);
+            gap: 2px;
+            margin-bottom: 10px;
+            align-items: center;
+        }
+
+        .timeline-header .task-header {
+            background: linear-gradient(135deg, #34495e, #2c3e50);
+            color: white;
+            padding: 15px;
+            font-weight: bold;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .timeline-header .day-header {
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            padding: 10px 5px;
+            text-align: center;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .gantt-row {
+            display: grid;
+            grid-template-columns: 300px repeat(13, 1fr);
+            gap: 2px;
+            margin-bottom: 8px;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .gantt-row:hover {
+            transform: translateX(5px);
+        }
+
+        .task-label {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid;
+            font-weight: 600;
+            color: #2c3e50;
+            transition: all 0.3s ease;
+        }
+
+        .task-label:hover {
+            background: #e9ecef;
+            transform: translateX(3px);
+        }
+
+        .day-cell {
+            height: 50px;
+            border-radius: 8px;
+            position: relative;
+            background: #f8f9fa;
+            transition: all 0.3s ease;
+        }
+
+        .task-bar {
+            height: 100%;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 0.8rem;
+            position: relative;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .task-bar:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .task-bar::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { left: -100%; }
+            100% { left: 100%; }
+        }
+
+        /* Task-specific colors */
+        .planning { background: linear-gradient(135deg, #3498db, #2980b9); border-color: #3498db; }
+        .architecture { background: linear-gradient(135deg, #e67e22, #d35400); border-color: #e67e22; }
+        .ui-design { background: linear-gradient(135deg, #27ae60, #229954); border-color: #27ae60; }
+        .frontend { background: linear-gradient(135deg, #e74c3c, #c0392b); border-color: #e74c3c; }
+        .backend { background: linear-gradient(135deg, #9b59b6, #8e44ad); border-color: #9b59b6; }
+        .integration { background: linear-gradient(135deg, #795548, #6d4c41); border-color: #795548; }
+        .review { background: linear-gradient(135deg, #e91e63, #ad1457); border-color: #e91e63; }
+        .launch { background: linear-gradient(135deg, #607d8b, #455a64); border-color: #607d8b; }
+
+        /* API Integration tasks */
+        .api-review { background: linear-gradient(135deg, #4CAF50, #45a049); border-color: #4CAF50; }
+        .api-core { background: linear-gradient(135deg, #2196F3, #1976D2); border-color: #2196F3; }
+        .api-error { background: linear-gradient(135deg, #FF9800, #F57C00); border-color: #FF9800; }
+        .api-testing { background: linear-gradient(135deg, #9C27B0, #7B1FA2); border-color: #9C27B0; }
+        .api-security { background: linear-gradient(135deg, #F44336, #D32F2F); border-color: #F44336; }
+
+        /* Web Development tasks */
+        .web-setup { background: linear-gradient(135deg, #00BCD4, #0097A7); border-color: #00BCD4; }
+        .web-ui { background: linear-gradient(135deg, #CDDC39, #AFB42B); border-color: #CDDC39; }
+        .web-dashboard { background: linear-gradient(135deg, #FF5722, #E64A19); border-color: #FF5722; }
+        .web-binding { background: linear-gradient(135deg, #795548, #5D4037); border-color: #795548; }
+        .web-testing { background: linear-gradient(135deg, #607D8B, #455A64); border-color: #607D8B; }
+
+        /* App Development tasks */
+        .app-setup { background: linear-gradient(135deg, #E91E63, #C2185B); border-color: #E91E63; }
+        .app-screens { background: linear-gradient(135deg, #673AB7, #512DA8); border-color: #673AB7; }
+        .app-final { background: linear-gradient(135deg, #3F51B5, #303F9F); border-color: #3F51B5; }
+
+        .legend {
+            margin-top: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+            border-radius: 15px;
+        }
+
+        .legend h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .legend-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px;
+            background: white;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .legend-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+        }
+
+        .tooltip {
+            position: absolute;
+            background: #2c3e50;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            white-space: nowrap;
+            z-index: 1000;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            transform: translateY(-100%);
+            margin-top: -10px;
+        }
+
+        .tooltip.show {
+            opacity: 1;
+        }
+
+        .tooltip::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 5px solid transparent;
+            border-top-color: #2c3e50;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .timeline-header .task-header {
+                padding: 10px;
+                font-size: 0.9rem;
+            }
+            
+            .task-label {
+                padding: 10px;
+                font-size: 0.9rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📅 eSIM Website Development</h1>
+            <p>13-Day Comprehensive Project Timeline</p>
+        </div>
+
+        <div class="gantt-container">
+            <div class="gantt-chart">
+                <div class="timeline-header">
+                    <div class="task-header">Tasks</div>
+                    <div class="day-header">Day 1</div>
+                    <div class="day-header">Day 2</div>
+                    <div class="day-header">Day 3</div>
+                    <div class="day-header">Day 4</div>
+                    <div class="day-header">Day 5</div>
+                    <div class="day-header">Day 6</div>
+                    <div class="day-header">Day 7</div>
+                    <div class="day-header">Day 8</div>
+                    <div class="day-header">Day 9</div>
+                    <div class="day-header">Day 10</div>
+                    <div class="day-header">Day 11</div>
+                    <div class="day-header">Day 12</div>
+                    <div class="day-header">Day 13</div>
+                </div>
+
+                <!-- API Integration Phase -->
+                <div class="gantt-row">
+                    <div class="task-label api-review">📋 API Documentation & Auth</div>
+                    <div class="day-cell"><div class="task-bar api-review" data-tooltip="API documentation review, authentication setup">Day 1</div></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                </div>
+
+                <div class="gantt-row">
+                    <div class="task-label api-core">🔗 Core API Implementation</div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"><div class="task-bar api-core" data-tooltip="Implement core API endpoints (activation, status check)">Day 2</div></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                </div>
+
+                <div class="gantt-row">
+                    <div class="task-label api-error">⚠️ API Error Handling</div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"><div class="task-bar api-error" data-tooltip="API error handling & response formatting">Day 3</div></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                </div>
+
+                <div class="gantt-row">
+                    <div class="task-label api-testing">🧪 Load Testing & Optimization</div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"><div class="task-bar api-testing" data-tooltip="Load testing & performance optimization">Day 4</div></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                </div>
+
+                <div class="gantt-row">
+                    <div class="task-label api-security">🔒 API Security & Final Tests</div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"><div class="task-bar api-security" data-tooltip="API security hardening & final integration tests">Day 5</div></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                </div>
+
+                <!-- Web Development Phase -->
+                <div class="gantt-row">
+                    <div class="task-label web-setup">🏗️ Web Architecture Setup</div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"><div class="task-bar web-setup" data-tooltip="Web architecture setup (React/Next.js + backend integration)">Day 6</div></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                </div>
+
+                <div class="gantt-row">
+                    <div class="task-label web-ui">🎨 Homepage & UI Implementation</div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"><div class="task-bar web-ui" data-tooltip="Implement homepage & eSIM plan listing UI">Day 7</div></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                </div>
+
+                <div class="gantt-row">
+                    <div class="task-label web-dashboard">💼 Dashboard & Payment Gateway</div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"><div class="task-bar web-dashboard" data-tooltip="User account dashboard & payment gateway integration">Day 8</div></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                </div>
+
+                <div class="gantt-row">
+                    <div class="task-label web-binding">🔄 API Data Binding</div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"><div class="task-bar web-binding" data-tooltip="API data binding to frontend (real-time eSIM status)">Day 9</div></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                </div>
+
+                <div class="gantt-row">
+                    <div class="task-label web-testing">🧪 Browser Testing & Polish</div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"><div class="task-bar web-testing" data-tooltip="Browser testing, bug fixes, and UI polish">Day 10</div></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                </div>
+
+                <!-- App Development Phase -->
+                <div class="gantt-row">
+                    <div class="task-label app-setup">📱 Mobile App Setup</div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"><div class="task-bar app-setup" data-tooltip="Mobile app project setup (React Native/Flutter), API integration">Day 11</div></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                </div>
+
+                <div class="gantt-row">
+                    <div class="task-label app-screens">📲 Core App Screens</div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"><div class="task-bar app-screens" data-tooltip="Core screens (login, plan purchase, activation status)">Day 12</div></div>
+                    <div class="day-cell"></div>
+                </div>
+
+                <div class="gantt-row">
+                    <div class="task-label app-final">🚀 Final Testing & Submission</div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"></div>
+                    <div class="day-cell"><div class="task-bar app-final" data-tooltip="Final testing on iOS & Android, bug fixes, store submission prep">Day 13</div></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="legend">
+            <h3>📊 Project Phases Legend</h3>
+            <div class="legend-grid">
+                <div class="legend-item">
+                    <div class="legend-color api-review"></div>
+                    <span><strong>API Integration</strong> - Days 1-5</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color web-setup"></div>
+                    <span><strong>Web Development</strong> - Days 6-10</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color app-setup"></div>
+                    <span><strong>App Development</strong> - Days 11-13</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="tooltip" id="tooltip"></div>
+
+    <script>
+        // Tooltip functionality
+        const taskBars = document.querySelectorAll('.task-bar');
+        const tooltip = document.getElementById('tooltip');
+
+        taskBars.forEach(bar => {
+            bar.addEventListener('mouseenter', (e) => {
+                const tooltipText = e.target.getAttribute('data-tooltip');
+                if (tooltipText) {
+                    tooltip.textContent = tooltipText;
+                    tooltip.style.left = e.pageX + 'px';
+                    tooltip.style.top = e.pageY + 'px';
+                    tooltip.classList.add('show');
+                }
+            });
+
+            bar.addEventListener('mouseleave', () => {
+                tooltip.classList.remove('show');
+            });
+
+            bar.addEventListener('mousemove', (e) => {
+                tooltip.style.left = e.pageX + 10 + 'px';
+                tooltip.style.top = e.pageY - 40 + 'px';
+            });
+        });
+
+        // Add click functionality for task details
+        taskBars.forEach(bar => {
+            bar.addEventListener('click', (e) => {
+                const taskName = e.target.textContent;
+                const tooltipText = e.target.getAttribute('data-tooltip');
+                alert(`${taskName}\n\nDetails: ${tooltipText}`);
+            });
+        });
+
+        // Add progress tracking
+        let completedTasks = [];
+        
+        taskBars.forEach((bar, index) => {
+            bar.addEventListener('dblclick', (e) => {
+                e.target.style.opacity = '0.6';
+                e.target.innerHTML += ' ✅';
+                completedTasks.push(index);
+                
+                // Update progress
+                const progress = (completedTasks.length / taskBars.length * 100).toFixed(1);
+                console.log(`Project Progress: ${progress}%`);
+            });
+        });
+    </script>
+</body>
+</html>

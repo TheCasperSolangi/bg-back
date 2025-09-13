@@ -1,0 +1,10 @@
+{
+  "collectCoverage": true,
+  "testPathIgnorePatterns": [
+    "/node_modules/"
+  ],
+  "watchPathIgnorePatterns": [
+    "/node_modules/"
+  ],
+  "verbose": true
+}
