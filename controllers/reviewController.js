@@ -101,3 +101,44 @@ exports.getReviewsByProduct = asyncHandler(async (req, res) => {
 
   res.status(200).json({ success: true, data: reviews });
 });
+
+// @desc    Get all reviews
+// @route   GET /api/reviews
+exports.getAllReviews = asyncHandler(async (req, res) => {
+  const reviews = await Review.find().sort({ createdAt: -1 }); // latest first
+  res.status(200).json({ success: true, data: reviews });
+});
+
+// @desc    Delete a review by ID
+// @route   DELETE /api/reviews/:id
+exports.deleteReview = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+
+  const review = await Review.findById(id);
+  if (!review) {
+    return res.status(404).json({ success: false, message: 'Review not found' });
+  }
+
+  await Review.findByIdAndDelete(id);
+
+  // 🔹 Recalculate average rating for the product
+  const agg = await Review.aggregate([
+    { $match: { product_code: review.product_code } },
+    { $group: { _id: "$product_code", avgRating: { $avg: "$review" } } }
+  ]);
+
+  if (agg.length > 0) {
+    await Product.updateOne(
+      { product_code: review.product_code },
+      { $set: { ratings: agg[0].avgRating.toFixed(1) } }
+    );
+  } else {
+    // If no reviews left, reset rating to 0
+    await Product.updateOne(
+      { product_code: review.product_code },
+      { $set: { ratings: 0 } }
+    );
+  }
+
+  res.status(200).json({ success: true, message: 'Review deleted successfully' });
+});

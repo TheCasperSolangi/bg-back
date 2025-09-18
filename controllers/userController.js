@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const Auth = require('../models/Auth'); // Import Auth model
 const { nanoid, customAlphabet } = require('nanoid');
+const StoreSettings = require('../models/storeSettings');
 // GET /api/users - Admin only: get all users
 exports.getAllUsers = async (req, res) => {
   try {
@@ -84,6 +85,19 @@ exports.updateUser = async (req, res) => {
       return res.status(400).json({ message: 'Not Allowed to Update Wallet Balance please contact administrator' });
     }
 
+    // Prevent verification-related fields from being updated
+    const restrictedFields = [
+      "is_verified",
+      "is_phone_verified",
+      "verified_at",
+      "phone_verified_at"
+    ];
+    for (const field of restrictedFields) {
+      if (updates[field] !== undefined) {
+        return res.status(400).json({ message: `Not allowed to update ${field}` });
+      }
+    }
+
     // Prevent username/email conflicts
     if (updates.username || updates.email) {
       const conflict = await User.findOne({
@@ -93,7 +107,9 @@ exports.updateUser = async (req, res) => {
         ],
         _id: { $ne: req.user._id }
       });
-      if (conflict) return res.status(400).json({ message: 'Username or email already taken' });
+      if (conflict) {
+        return res.status(400).json({ message: 'Username or email already taken' });
+      }
     }
 
     const updatedUser = await User.findOneAndUpdate(
@@ -102,13 +118,16 @@ exports.updateUser = async (req, res) => {
       { new: true, runValidators: true }
     ).select('-saved_cards.cvv');
 
-    if (!updatedUser) return res.status(404).json({ message: 'User not found' });
+    if (!updatedUser) {
+      return res.status(404).json({ message: 'User not found' });
+    }
 
     res.json(updatedUser);
   } catch (err) {
     res.status(500).json({ message: 'Server error' });
   }
 };
+
 
 // DELETE /api/users/:username - Admin only: delete user
 exports.deleteUser = async (req, res) => {
@@ -437,6 +456,69 @@ exports.deletePaymentMethod = async (req, res) => {
       cardholder_name: c.cardholder_name 
     })));
   } catch (err) {
+    res.status(500).json({ message: 'Server error', error: err.message });
+  }
+};
+
+// POST /api/users/:username/redeem
+exports.redeemRewardPoints = async (req, res) => {
+  try {
+    const { username } = req.params;
+    const { amount } = req.body; // reward points user wants to redeem
+
+    // Only admin or self can redeem
+    if (req.user.user_type !== 'admin' && req.user.username !== username) {
+      return res.status(403).json({ message: 'Access denied' });
+    }
+
+    const user = await User.findOne({ username });
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    // Load store settings to get conversion ratio
+    const storeSettings = await StoreSettings.findOne().sort({ createdAt: -1 });
+    if (!storeSettings || !storeSettings.minimum_points) {
+      return res.status(500).json({ message: 'Reward settings not configured' });
+    }
+
+    const minimumPoints = storeSettings.minimum_points; 
+    if (!minimumPoints || minimumPoints <= 0) {
+      return res.status(400).json({ message: 'Invalid reward point conversion setting' });
+    }
+
+    // Validate input amount
+    if (!amount || amount <= 0) {
+      return res.status(400).json({ message: 'Please provide a valid reward points amount to redeem.' });
+    }
+
+    if (amount > user.reward_points) {
+      return res.status(400).json({ message: `You only have ${user.reward_points} reward points.` });
+    }
+
+    if (amount < minimumPoints) {
+      return res.status(400).json({ message: `You must redeem at least ${minimumPoints} reward points.` });
+    }
+
+    // Amount must be multiple of minimumPoints
+    if (amount % minimumPoints !== 0) {
+      return res.status(400).json({ message: `Redeem amount must be a multiple of ${minimumPoints} reward points.` });
+    }
+
+    // Convert reward points → wallet balance
+    const currencyAmount = amount / minimumPoints;
+
+    user.reward_points -= amount;
+    user.wallet_balance = (user.wallet_balance || 0) + currencyAmount;
+
+    await user.save();
+
+    res.json({
+      message: `Successfully redeemed ${amount} points for ${currencyAmount} ${user.currency || 'currency'}`,
+      username: user.username,
+      wallet_balance: user.wallet_balance,
+      remaining_points: user.reward_points
+    });
+  } catch (err) {
+    console.error(err);
     res.status(500).json({ message: 'Server error', error: err.message });
   }
 };

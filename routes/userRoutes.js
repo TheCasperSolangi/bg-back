@@ -13,23 +13,30 @@ router.put('/:username', protect, userController.updateUser);
 
 router.delete('/:username', protect, authorizeRoles('admin'), userController.deleteUser);
 
+// =======================
 // Wallet routes
-router.get('/:username/wallet', userController.fetchUserWalletBalance);
-router.patch('/:username/credit',  userController.creditBalance);
-router.patch('/:username/debit',  userController.debitBalance);
+// =======================
+router.get('/:username/wallet', protect, userController.fetchUserWalletBalance);
+router.patch('/:username/credit', protect, userController.creditBalance);
+router.patch('/:username/debit', protect, userController.debitBalance);
 
-// CRUD ROUTES FOR ADDRESS AND PAYMENTS 
+// Redeem reward points → wallet balance
+router.post('/:username/redeem', protect, userController.redeemRewardPoints);
 
+// =======================
 // Address routes
-router.get('/:username/addresses',  userController.getAddresses);
-router.post('/:username/addresses',  userController.addAddress);
-router.put('/:username/addresses/:index',  userController.updateAddress);
-router.delete('/:username/addresses/:index',  userController.deleteAddress);
+// =======================
+router.get('/:username/addresses', protect, userController.getAddresses);
+router.post('/:username/addresses', protect, userController.addAddress);
+router.put('/:username/addresses/:index', protect, userController.updateAddress);
+router.delete('/:username/addresses/:index', protect, userController.deleteAddress);
 
+// =======================
 // Payment method routes
-router.get('/:username/payment-methods', userController.getPaymentMethods);
-router.post('/:username/payment-methods', userController.addPaymentMethod);
-router.put('/:username/payment-methods/:card_code', userController.updatePaymentMethod);
-router.delete('/:username/payment-methods/:card_code', userController.deletePaymentMethod);
+// =======================
+router.get('/:username/payment-methods', protect, userController.getPaymentMethods);
+router.post('/:username/payment-methods', protect, userController.addPaymentMethod);
+router.put('/:username/payment-methods/:card_code', protect, userController.updatePaymentMethod);
+router.delete('/:username/payment-methods/:card_code', protect, userController.deletePaymentMethod);
 
 module.exports = router;

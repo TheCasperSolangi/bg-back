@@ -47,10 +47,12 @@ const storeSettingsSchema = new mongoose.Schema({
     address: { type: String },
     youtube: {type:String},
     tiktok: {type:String},
+    minimum_points: {type:Number}, // minimum rewards points that equal to one dollar or currency
 cordinates: [
   {
     lat: { type: String },
-    lon: { type: String }
+    lon: { type: String },
+    
   }
 ]
 

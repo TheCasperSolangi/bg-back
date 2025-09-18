@@ -52,7 +52,13 @@ const UserSchema = new mongoose.Schema({
   currency: { type: String },
   timezone: { type: String },
   is_verified: { type: Boolean, default: false },
-
+  is_phone_verified: {type:String},
+  verified_at: {type:String},
+  phone_verified_at: {type:String},
+  birthday: {type:String},
+  gender: {type:String},
+  phone: {type:String},
+  accept_marketing: {type:Boolean, default: false},
   notification_preferences: {
     type: [String],
     enum: ["EMAIL", "PUSH_NOTIFICATIONS", "IN_APP_NOTIFICATIONS"],
