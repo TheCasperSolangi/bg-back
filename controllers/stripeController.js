@@ -1,62 +1,96 @@
 // stripeController.js
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const Order = require('../models/order');
 const Cart = require('../models/cart');
 const User = require('../models/User');
+const StoreSettings = require('../models/storeSettings'); // Assuming this model exists
 const asyncHandler = require('../utils/asyncHandler');
 const { customAlphabet } = require('nanoid');
+
+// Helper function to get vendor-specific Stripe configuration
+const getVendorStripeConfig = async (vendorCode) => {
+  if (!vendorCode) {
+    throw new Error('Vendor code is required');
+  }
+
+  const storeSettings = await StoreSettings.findOne({ vendor_code: vendorCode });
+  if (!storeSettings) {
+    throw new Error(`Store settings not found for vendor: ${vendorCode}`);
+  }
+
+  if (!storeSettings.stripe_api_key || !storeSettings.stripe_api_secret || !storeSettings.stripe_webhook_secret) {
+    throw new Error(`Stripe credentials not configured for vendor: ${vendorCode}`);
+  }
+
+  return {
+    apiKey: storeSettings.stripe_api_key,
+    apiSecret: storeSettings.stripe_api_secret,
+    webhookSecret: storeSettings.stripe_webhook_secret
+  };
+};
+
+// Helper function to create Stripe instance for vendor
+const createStripeInstance = async (vendorCode) => {
+  const config = await getVendorStripeConfig(vendorCode);
+  const stripe = require('stripe')(config.apiSecret);
+  return { stripe, config };
+};
 
 // @desc Create Stripe payment intent
 // @route POST /api/stripe/create-payment-intent
 // @access Private
 exports.createPaymentIntent = asyncHandler(async (req, res) => {
-  const {
-    order_code,
-    cart_code,
-    billing_address,
-    shipping_address,
-    special_instructions
-  } = req.body;
+  const { order_code, cart_code, billing_address, shipping_address, special_instructions } = req.body;
+  const vendorCode = req.headers['x-vendor-code'];
+
+  if (!vendorCode) {
+    return res.status(400).json({
+      success: false,
+      message: 'x-vendor-code header is required'
+    });
+  }
 
   if (!order_code || !cart_code || !billing_address || !shipping_address) {
-    return res.status(400).json({ 
-      success: false, 
-      message: 'Order code, cart code, billing address, and shipping address are required' 
+    return res.status(400).json({
+      success: false,
+      message: 'Order code, cart code, billing address, and shipping address are required'
     });
   }
 
   try {
+    // Get vendor-specific Stripe instance
+    const { stripe } = await createStripeInstance(vendorCode);
+
     // Check if order_code already exists
     const existingOrder = await Order.findOne({ order_code });
     if (existingOrder) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Order code already exists' 
+      return res.status(400).json({
+        success: false,
+        message: 'Order code already exists'
       });
     }
 
     // Fetch cart
     const cart = await Cart.findOne({ cart_code });
     if (!cart) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'Cart not found' 
+      return res.status(404).json({
+        success: false,
+        message: 'Cart not found'
       });
     }
 
     if (!cart.products || cart.products.length === 0) {
-      return res.status(400).json({ 
-        success: false, 
-        message: 'Cart is empty' 
+      return res.status(400).json({
+        success: false,
+        message: 'Cart is empty'
       });
     }
 
     // Fetch user based on cart.username
     const user = await User.findOne({ username: cart.username });
     if (!user) {
-      return res.status(404).json({ 
-        success: false, 
-        message: 'User not found' 
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
       });
     }
 
@@ -83,7 +117,7 @@ exports.createPaymentIntent = asyncHandler(async (req, res) => {
     }, 0);
 
     const finalTotal = Math.max(0, total + subtotalAdjustments);
-    
+
     // Convert to cents for Stripe (Stripe expects amounts in cents)
     const amountInCents = Math.round(finalTotal * 100);
 
@@ -98,7 +132,8 @@ exports.createPaymentIntent = asyncHandler(async (req, res) => {
         order_code,
         cart_code,
         user_id: user._id.toString(),
-        username: user.username
+        username: user.username,
+        vendor_code: vendorCode
       },
       description: `Order ${order_code} - ${items.length} item(s)`,
       shipping: {
@@ -115,10 +150,6 @@ exports.createPaymentIntent = asyncHandler(async (req, res) => {
       },
       receipt_email: user.email,
     });
-
-    // Store payment intent data temporarily (you might want to use Redis or similar)
-    // For now, we'll store it in a temporary collection or in memory
-    // You can also extend your Order model to include payment_intent_id for pending orders
 
     res.json({
       success: true,
@@ -144,16 +175,15 @@ exports.createPaymentIntent = asyncHandler(async (req, res) => {
 // @route POST /api/stripe/confirm-payment
 // @access Private
 exports.confirmPayment = asyncHandler(async (req, res) => {
-  const {
-    payment_intent_id,
-    order_code,
-    cart_code,
-    billing_address,
-    shipping_address,
-    special_instructions,
-    lalamove_order_id,
-    lalamove_share_url
-  } = req.body;
+  const { payment_intent_id, order_code, cart_code, billing_address, shipping_address, special_instructions, lalamove_order_id, lalamove_share_url } = req.body;
+  const vendorCode = req.headers['x-vendor-code'];
+
+  if (!vendorCode) {
+    return res.status(400).json({
+      success: false,
+      message: 'x-vendor-code header is required'
+    });
+  }
 
   if (!payment_intent_id || !order_code || !cart_code) {
     return res.status(400).json({
@@ -163,9 +193,12 @@ exports.confirmPayment = asyncHandler(async (req, res) => {
   }
 
   try {
+    // Get vendor-specific Stripe instance
+    const { stripe } = await createStripeInstance(vendorCode);
+
     // Retrieve the payment intent from Stripe
     const paymentIntent = await stripe.paymentIntents.retrieve(payment_intent_id);
-    
+
     if (paymentIntent.status !== 'succeeded') {
       return res.status(400).json({
         success: false,
@@ -173,11 +206,18 @@ exports.confirmPayment = asyncHandler(async (req, res) => {
       });
     }
 
-    // Verify the payment intent matches our order
+    // Verify the payment intent matches our order and vendor
     if (paymentIntent.metadata.order_code !== order_code) {
       return res.status(400).json({
         success: false,
         message: 'Payment intent does not match order'
+      });
+    }
+
+    if (paymentIntent.metadata.vendor_code !== vendorCode) {
+      return res.status(400).json({
+        success: false,
+        message: 'Payment intent does not match vendor'
       });
     }
 
@@ -234,6 +274,7 @@ exports.confirmPayment = asyncHandler(async (req, res) => {
     // Create order with Stripe payment info
     const order = await Order.create({
       order_code,
+      vendor_code: vendorCode,
       user: {
         _id: user._id,
         username: user.username,
@@ -254,17 +295,17 @@ exports.confirmPayment = asyncHandler(async (req, res) => {
       },
       billing_address,
       shipping_address,
-      status: 'paid', // Mark as paid since Stripe payment succeeded
+      status: 'paid',
       special_instructions: special_instructions || 'No special instructions',
       discount_summary: cart.discountInfo || null
     });
 
     // Delete cart after successful order creation
     await Cart.findOneAndDelete({ cart_code });
-       const nanoid = customAlphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', 10);
-            const newCartCode = nanoid();
-      
-           const newCart = await Cart.create({
+
+    const nanoid = customAlphabet('ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', 10);
+    const newCartCode = nanoid();
+    const newCart = await Cart.create({
       cart_code: newCartCode,
       username: user.username,
       products: [],
@@ -301,12 +342,22 @@ exports.confirmPayment = asyncHandler(async (req, res) => {
 // @access Public (but verify with Stripe signature)
 exports.handleWebhook = asyncHandler(async (req, res) => {
   const sig = req.headers['stripe-signature'];
-  const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  const vendorCode = req.headers['x-vendor-code'];
+
+  if (!vendorCode) {
+    return res.status(400).json({
+      success: false,
+      message: 'x-vendor-code header is required'
+    });
+  }
 
   let event;
 
   try {
-    event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
+    // Get vendor-specific Stripe configuration
+    const { stripe, config } = await createStripeInstance(vendorCode);
+    
+    event = stripe.webhooks.constructEvent(req.body, sig, config.webhookSecret);
   } catch (err) {
     console.error('Webhook signature verification failed:', err.message);
     return res.status(400).send(`Webhook Error: ${err.message}`);
@@ -316,22 +367,20 @@ exports.handleWebhook = asyncHandler(async (req, res) => {
   switch (event.type) {
     case 'payment_intent.succeeded':
       const paymentIntent = event.data.object;
-      console.log('Payment succeeded:', paymentIntent.id);
-      
+      console.log(`Payment succeeded for vendor ${vendorCode}:`, paymentIntent.id);
       // You can add additional logic here for successful payments
       // For example, send confirmation emails, update inventory, etc.
       break;
 
     case 'payment_intent.payment_failed':
       const failedPayment = event.data.object;
-      console.log('Payment failed:', failedPayment.id);
-      
+      console.log(`Payment failed for vendor ${vendorCode}:`, failedPayment.id);
       // Handle failed payments
       // You might want to notify the user or retry the payment
       break;
 
     default:
-      console.log(`Unhandled event type ${event.type}`);
+      console.log(`Unhandled event type ${event.type} for vendor ${vendorCode}`);
   }
 
   res.json({ received: true });
@@ -341,7 +390,19 @@ exports.handleWebhook = asyncHandler(async (req, res) => {
 // @route GET /api/stripe/payment-methods
 // @access Private
 exports.getPaymentMethods = asyncHandler(async (req, res) => {
+  const vendorCode = req.headers['x-vendor-code'];
+
+  if (!vendorCode) {
+    return res.status(400).json({
+      success: false,
+      message: 'x-vendor-code header is required'
+    });
+  }
+
   try {
+    // Get vendor-specific Stripe instance
+    const { stripe } = await createStripeInstance(vendorCode);
+
     const user = await User.findById(req.user.id);
     if (!user || !user.stripe_customer_id) {
       return res.json({
@@ -375,6 +436,14 @@ exports.getPaymentMethods = asyncHandler(async (req, res) => {
 // @access Private
 exports.savePaymentMethod = asyncHandler(async (req, res) => {
   const { payment_method_id } = req.body;
+  const vendorCode = req.headers['x-vendor-code'];
+
+  if (!vendorCode) {
+    return res.status(400).json({
+      success: false,
+      message: 'x-vendor-code header is required'
+    });
+  }
 
   if (!payment_method_id) {
     return res.status(400).json({
@@ -384,6 +453,9 @@ exports.savePaymentMethod = asyncHandler(async (req, res) => {
   }
 
   try {
+    // Get vendor-specific Stripe instance
+    const { stripe } = await createStripeInstance(vendorCode);
+
     const user = await User.findById(req.user.id);
     if (!user) {
       return res.status(404).json({
@@ -400,11 +472,13 @@ exports.savePaymentMethod = asyncHandler(async (req, res) => {
         name: user.full_name,
         metadata: {
           user_id: user._id.toString(),
-          username: user.username
+          username: user.username,
+          vendor_code: vendorCode
         }
       });
+
       customerId = customer.id;
-      
+
       // Update user with Stripe customer ID
       await User.findByIdAndUpdate(user._id, {
         stripe_customer_id: customerId
