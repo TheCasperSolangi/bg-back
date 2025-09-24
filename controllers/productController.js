@@ -335,6 +335,10 @@ exports.getProductPricing = asyncHandler(async (req, res) => {
 // @desc    Get related products by product ID (based on category + price + featured)
 // @route   GET /api/products/:id/related
 // @access  Public
+
+const stringSimilarity = require('string-similarity'); // npm install string-similarity
+
+// @access Public
 exports.getRelatedProducts = asyncHandler(async (req, res) => {
   const { include_discounts, limit = 5 } = req.query;
 
@@ -343,24 +347,64 @@ exports.getRelatedProducts = asyncHandler(async (req, res) => {
     return res.status(404).json({ success: false, message: 'Product not found' });
   }
 
-  // Price similarity range ±20%
   const minPrice = product.price * 0.8;
   const maxPrice = product.price * 1.2;
 
-  // Find related products
-  let relatedProducts = await Product.find({
-    category_code: product.category_code,
-    _id: { $ne: product._id },
-    price: { $gte: minPrice, $lte: maxPrice }
-  })
-  .sort({ is_featured: -1 }) // featured first
-  .limit(parseInt(limit));
+  // Step 1: Fetch candidates (any product except current)
+  let candidates = await Product.find({ _id: { $ne: product._id } });
 
-  if (!relatedProducts || relatedProducts.length === 0) {
+  if (!candidates || candidates.length === 0) {
     return res.status(404).json({ success: false, message: 'No related products found' });
   }
 
-  // Apply discounts if requested
+  // Step 2: Score candidates
+  const scoredProducts = candidates.map((p) => {
+    let score = 0;
+
+    // Price similarity ±20%
+    const priceDiff = Math.abs(p.price - product.price) / product.price;
+    score += (1 - Math.min(priceDiff, 1)) * 20;
+
+    // Flags
+    if (p.is_featured) score += 15;
+    if (p.isBestSeller) score += 15;
+    if (p.isNewArrival) score += 10;
+
+    // Ratings & engagement
+    score += Math.min(p.averageRating || 0, 5) * 4;
+    score += Math.min(p.totalReviews || 0, 50) / 50 * 10;
+    score += Math.min(p.viewCount || 0, 1000) / 1000 * 10;
+    score += Math.min(p.likesCount || 0, 100) / 100 * 5;
+
+    // Tags overlap
+    const sharedTags = p.tags.filter((tag) => product.tags.includes(tag));
+    if (sharedTags.length) score += Math.min(sharedTags.length / product.tags.length, 1) * 10;
+
+    // Fuzzy title similarity
+    const titleSimilarity = stringSimilarity.compareTwoStrings(
+      product.product_name.toLowerCase(),
+      p.product_name.toLowerCase()
+    ); // returns 0..1
+    score += titleSimilarity * 25; // max 25 points for title similarity
+
+    return { product: p, score, titleSimilarity };
+  });
+
+  // Step 3: Filter products with score >= 50 OR titleSimilarity >= 0.25
+  let relatedProducts = scoredProducts
+    .filter((p) => p.score >= 50 || p.titleSimilarity >= 0.25)
+    .sort((a, b) => b.score - a.score)
+    .map((p) => p.product);
+
+  // Step 4: Ensure at least 1 product
+  if (relatedProducts.length === 0 && scoredProducts.length > 0) {
+    relatedProducts = [scoredProducts[0].product];
+  }
+
+  // Step 5: Limit results
+  relatedProducts = relatedProducts.slice(0, parseInt(limit));
+
+  // Step 6: Apply discounts if requested
   if (include_discounts === 'true') {
     relatedProducts = await Promise.all(
       relatedProducts.map(async (related) => {
@@ -381,6 +425,7 @@ exports.getRelatedProducts = asyncHandler(async (req, res) => {
 
   res.json({ success: true, count: relatedProducts.length, data: relatedProducts });
 });
+
 
 
 // @desc    Get best-selling products (last 7 days)

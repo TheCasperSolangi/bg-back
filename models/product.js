@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-
+const vendorScopePlugin = require("../plugin/vendorScopePlugin");
 const ProductSchema = new mongoose.Schema({
   // Identification
   product_sku: { type: String, required: true, unique: true, trim: true },
@@ -18,7 +18,7 @@ const ProductSchema = new mongoose.Schema({
   lowStockThreshold: { type: Number, default: 0, required: false },
   allowBackorder: { type: Boolean, default: false, required: false },
   outOfStockBehavior: { type: String, default: "", required: false },
-
+  vendor_code: { type: String, required: true, index: true },
   // Images
   productImages: { type: [String], default: [], required: false },
   image: { type: String, default: "", required: false },
@@ -96,5 +96,5 @@ const ProductSchema = new mongoose.Schema({
 // Unique indexes
 ProductSchema.index({ product_sku: 1 }, { unique: true });
 ProductSchema.index({ product_code: 1 }, { unique: true });
-
+ProductSchema.plugin(vendorScopePlugin);
 module.exports = mongoose.model('Product', ProductSchema);

@@ -12,6 +12,7 @@
   "type": "commonjs",
   "dependencies": {
     "@faker-js/faker": "^9.9.0",
+    "async_hooks": "^1.0.0",
     "axios": "^1.11.0",
     "bcryptjs": "^3.0.2",
     "better-sqlite3": "^12.2.0",
@@ -36,6 +37,7 @@
     "readline-sync": "^1.4.10",
     "socket-io": "^1.0.0",
     "socket.io": "^4.8.1",
+    "string-similarity": "^4.0.4",
     "stripe": "^18.5.0",
     "uuid": "^11.1.0",
     "ws": "^8.18.3"

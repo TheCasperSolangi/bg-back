@@ -37,6 +37,7 @@ const transactionRotues = require('./routes/transactionRoutes');
 const { setupNotificationEvents } = require('./middleware/notificationMiddleware');
 const ledgerRoutes = require("./routes/ledger_routes");
 const reedemRoutes = require("./routes/redeemRoutes");
+const tenantMiddleware = require("./middleware/tenantMiddleware");
 // Init app
 const app = express();
 connectDB();
@@ -49,6 +50,7 @@ app.use(cors({
   allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"]
 }));
 
+app.use(tenantMiddleware);
 app.use(express.json());
 
 // Create HTTP server + Socket.IO BEFORE using it

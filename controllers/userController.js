@@ -80,6 +80,14 @@ exports.updateUser = async (req, res) => {
 
     const updates = { ...req.body };
 
+    // 🚫 Completely block username & email updates (remove if present)
+    if (updates.username !== undefined) {
+      delete updates.username;
+    }
+    if (updates.email !== undefined) {
+      delete updates.email;
+    }
+
     // Prevent wallet_balance changes via this route
     if (updates.wallet_balance !== undefined) {
       return res.status(400).json({ message: 'Not Allowed to Update Wallet Balance please contact administrator' });
@@ -98,20 +106,6 @@ exports.updateUser = async (req, res) => {
       }
     }
 
-    // Prevent username/email conflicts
-    if (updates.username || updates.email) {
-      const conflict = await User.findOne({
-        $or: [
-          { username: updates.username },
-          { email: updates.email }
-        ],
-        _id: { $ne: req.user._id }
-      });
-      if (conflict) {
-        return res.status(400).json({ message: 'Username or email already taken' });
-      }
-    }
-
     const updatedUser = await User.findOneAndUpdate(
       { username },
       updates,
@@ -127,6 +121,8 @@ exports.updateUser = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
+
+
 
 
 // DELETE /api/users/:username - Admin only: delete user
