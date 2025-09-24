@@ -1,7 +1,8 @@
 const mongoose = require('mongoose');
-
+const vendorScopePlugin = require('../plugin/vendorScopePlugin')
 const ReviewSchema = new mongoose.Schema({
   full_name: { type: String, required: true },          // user's full name
+  vendor_code: { type: String, index: true },
   profile_picture: { type: String },                    // user's profile picture URL
   product_code: { type: String, required: true },
   review: { 
@@ -16,5 +17,5 @@ const ReviewSchema = new mongoose.Schema({
 
 // Ensure a user can only review a product once
 ReviewSchema.index({ username: 1, product_code: 1 }, { unique: true });
-
+ReviewSchema.plugin(vendorScopePlugin);
 module.exports = mongoose.model('Review', ReviewSchema);

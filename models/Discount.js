@@ -1,10 +1,10 @@
 const mongoose = require('mongoose');
-
+const vendorScopePlugin = require('../plugin/vendorScopePlugin');
 const Discount = new mongoose.Schema({
     
     discount_type: {type:String, required: true, enum: ['product', 'campaign']},
     product_id: {type:String}, // product id to be entered in case the type is product
-    
+    vendor_code: { type: String,  index: true },
     discount_method: {type:String, required: true, enum: ['fixed', 'percentage']},
     value: {type:Number, requried: true},
     start_date: {type:String, required: true}, // the date the campaign is started
@@ -14,5 +14,5 @@ const Discount = new mongoose.Schema({
     capped_amount: {type:Number, required: true}
 }, { timestamps: true });
 
-
+Discount.plugin(vendorScopePlugin);
 module.exports = mongoose.model('Discount', Discount);  

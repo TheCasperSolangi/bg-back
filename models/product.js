@@ -18,7 +18,7 @@ const ProductSchema = new mongoose.Schema({
   lowStockThreshold: { type: Number, default: 0, required: false },
   allowBackorder: { type: Boolean, default: false, required: false },
   outOfStockBehavior: { type: String, default: "", required: false },
-  vendor_code: { type: String, required: true, index: true },
+  vendor_code: { type: String, index: true },
   // Images
   productImages: { type: [String], default: [], required: false },
   image: { type: String, default: "", required: false },

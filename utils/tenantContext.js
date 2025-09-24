@@ -5,7 +5,9 @@ const asyncLocalStorage = new AsyncLocalStorage();
 
 module.exports = {
   runWithTenant(vendorCode, callback) {
-    return asyncLocalStorage.run({ vendorCode }, callback);
+    // Use enterWith so context survives async/await boundaries
+    asyncLocalStorage.enterWith({ vendorCode });
+    return callback();
   },
   getTenant() {
     return asyncLocalStorage.getStore()?.vendorCode;

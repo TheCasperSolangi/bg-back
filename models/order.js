@@ -1,7 +1,8 @@
 const mongoose = require('mongoose');
-
+const vendorScopePlugin = require('../plugin/vendorScopePlugin')
 const OrderSchema = new mongoose.Schema({
   order_code: { type: String, required: true, unique: true, trim: true },
+  vendor_code: { type: String,  index: true },
   delivery_type:{type:String, enum: ['INSTANT', 'SCHEDULE_DELIVERY', 'POS', "PICK_UP", "DELIVERY"]},
   lalamove_order_id: {type:String},
   lalamove_share_url: {type:String},
@@ -195,5 +196,5 @@ OrderSchema.methods.isPayPalPayment = function() {
 // Ensure virtual fields are serialized
 OrderSchema.set('toJSON', { virtuals: true });
 OrderSchema.set('toObject', { virtuals: true });
-
+OrderSchema.plugin(vendorScopePlugin);
 module.exports = mongoose.model('Order', OrderSchema);

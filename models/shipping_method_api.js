@@ -1,8 +1,9 @@
 const mongoose = require('mongoose');
-
+const vendorScopePlugin = require('../plugin/vendorScopePlugin')
 const shippingMethod = new mongoose.Schema({
     shipipng_code: {type:String, required: true},
     shipping_name: {type:String, required: true},
+    vendor_code: { type: String,  index: true },
     shipping_types: [
         {
             name: {type:String}, // Express Delivery Normal Delivery'
@@ -15,6 +16,5 @@ const shippingMethod = new mongoose.Schema({
     ],
 
 }, { timestamps: true });
-
-
+shippingMethod.plugin(vendorScopePlugin);
 module.exports = mongoose.model('ShippignMethod', shippingMethod);

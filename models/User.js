@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-
+const vendorScopePlugin = require('../plugin/vendorScopePlugin')
 const SavedCardSchema = new mongoose.Schema(
   {
     card_code: {type:String, required: true},
@@ -36,7 +36,7 @@ const UserSchema = new mongoose.Schema({
   username:  { type: String, unique: true, required: true },
   email:     { type: String, unique: true, required: true },
   full_name: { type: String, required: true },
-
+vendor_code: { type: String, index: true },
   addresses: {
     type: [AddressSchema],
     default: []
@@ -65,5 +65,5 @@ const UserSchema = new mongoose.Schema({
     default: ["EMAIL"]
   }
 });
-
+UserSchema.plugin(vendorScopePlugin)
 module.exports = mongoose.models.User || mongoose.model('User', UserSchema);

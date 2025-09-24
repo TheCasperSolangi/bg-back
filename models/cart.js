@@ -1,7 +1,8 @@
 const mongoose = require('mongoose');
-
+const vendorScopePlugin = require('../plugin/vendorScopePlugin');
 const CartSchema = new mongoose.Schema({
   cart_code: { type: String, required: true, unique: true, trim: true }, // can be POS_TERMINAL_ID in case the order is for POS
+  vendor_code: { type: String, index: true },
   username: { type: String, required: true }, // can be cashiers name in case the order is for POS
   products: [
     {
@@ -120,5 +121,5 @@ CartSchema.methods.getDiscountedProducts = function() {
 // Ensure virtual fields are serialized
 CartSchema.set('toJSON', { virtuals: true });
 CartSchema.set('toObject', { virtuals: true });
-
+CartSchema.plugin(vendorScopePlugin);
 module.exports = mongoose.model('Cart', CartSchema);

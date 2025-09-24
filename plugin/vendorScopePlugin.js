@@ -1,8 +1,7 @@
-// plugins/vendorScopePlugin.js
 const { getTenant } = require("../utils/tenantContext");
 
 module.exports = function vendorScopePlugin(schema) {
-  // Auto-scope queries
+  // Auto-scope queries by vendor_code
   schema.pre(/^find/, function (next) {
     const tenant = getTenant();
     if (tenant) {
@@ -11,42 +10,46 @@ module.exports = function vendorScopePlugin(schema) {
     next();
   });
 
-  // Auto-inject vendor_code on save
-  schema.pre("save", function (next) {
+    schema.pre("save", function (next) {
+      const tenant = getTenant();
+      if (this.isNew && tenant) {
+        this.vendor_code = tenant; // auto injected
+      }
+      next();
+    });
+
+  // Auto-scope updates
+  schema.pre(/^update/, function (next) {
     const tenant = getTenant();
-    if (this.isNew && tenant) {
-      this.vendor_code = tenant;
+    if (tenant) {
+      this.where({ vendor_code: tenant });
     }
     next();
   });
 
-  // Hide vendor_code in responses
+  // Auto-scope deletes
+  schema.pre(/^delete/, function (next) {
+    const tenant = getTenant();
+    if (tenant) {
+      this.where({ vendor_code: tenant });
+    }
+    next();
+  });
+
+  // 🔒 Hide vendor_code and vendor_subdomain in all responses
+  const hiddenFields = ["vendor_code", "vendor_subdomain"];
+
   schema.set("toJSON", {
     transform: (doc, ret) => {
-      delete ret.vendor_code;
+      hiddenFields.forEach((f) => delete ret[f]);
       return ret;
     }
   });
+
   schema.set("toObject", {
     transform: (doc, ret) => {
-      delete ret.vendor_code;
+      hiddenFields.forEach((f) => delete ret[f]);
       return ret;
     }
   });
-  // In vendorScopePlugin.js
-schema.pre(/^update/, function (next) {
-  const tenant = getTenant();
-  if (tenant) {
-    this.where({ vendor_code: tenant });
-  }
-  next();
-});
-
-schema.pre(/^delete/, function (next) {
-  const tenant = getTenant();
-  if (tenant) {
-    this.where({ vendor_code: tenant });
-  }
-  next();
-});
 };

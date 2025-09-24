@@ -9,6 +9,7 @@ const Cart = require('../models/cart');
 const { customAlphabet } = require('nanoid');
 const { OAuth2Client } = require('google-auth-library');
 const axios = require('axios');
+const { getTenant } = require("../utils/tenantContext");
 const { applyDiscountsToCart } = require('../utils/discountHelper');
 const Sessions = require('../models/userSession');
 // Google OAuth client
@@ -485,6 +486,7 @@ exports.register = async (req, res) => {
   const { email, password, full_name, addresses, user_type, cart_code, session_id } = req.body;
 
   try {
+    
     // Check if email already exists
     const existing = await Auth.findOne({ email });
     if (existing) return res.status(400).json({ message: 'User already exists with this email' });

@@ -1,11 +1,11 @@
 const express = require('express');
 const router = express.Router();
+// ✅ Correct
 const storeSettingsController = require('../controllers/storeSettingsController');
 
-// Routes
-router.get('/', storeSettingsController.getstoreSettings);
-router.post('/', storeSettingsController.createOrUpdatestoreSettings);
-router.put('/', storeSettingsController.updateStoreSettings);
-router.delete('/', storeSettingsController.deletestoreSettings);
+router.get('/', storeSettingsController.getStoreSettings);
+router.post('/', storeSettingsController.createOrUpdateStoreSettings);
+router.put('/:id', storeSettingsController.updateStoreSettings);
+router.delete('/:id', storeSettingsController.deleteStoreSettings);
 
 module.exports = router;

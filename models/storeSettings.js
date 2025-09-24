@@ -1,6 +1,8 @@
 const mongoose = require('mongoose');
-
+const vendorScopePlugin = require("../plugin/vendorScopePlugin");
 const storeSettingsSchema = new mongoose.Schema({
+    vendor_code: { type: String,  lowercase: true, trim: true, index: true },
+    vendor_subdomain: { type: String,  lowercase: true, trim: true, unique: true }, // 👈 add this
     appName: { type: String },
     appLogo: { type: String },
     enviroment: { type: String, enum: ['development', 'production'] },
@@ -57,5 +59,5 @@ cordinates: [
 ]
 
 }, { timestamps: true });
-
+storeSettingsSchema.plugin(vendorScopePlugin);
 module.exports = mongoose.model('StoreSettings', storeSettingsSchema);

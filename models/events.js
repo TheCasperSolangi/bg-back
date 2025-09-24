@@ -1,9 +1,9 @@
 const mongoose = require('mongoose');
-
+const vendorScopePlugin = require('../plugin/vendorScopePlugin');
 const eventSchema = new mongoose.Schema({
     event_type: { type: String, required: true, enum: ['view', 'click'] },
     event_on: { type: String, required: true, enum: ['store', 'product', 'category'] },
-    
+    vendor_code: { type: String,  index: true },
     // In case product
     product_code: { type: String },
     // In case categories
@@ -31,5 +31,5 @@ const eventSchema = new mongoose.Schema({
     extra_data: { type: mongoose.Schema.Types.Mixed }
 
 }, { timestamps: true });
-
+eventSchema.plugin(vendorScopePlugin)
 module.exports = mongoose.model('Events', eventSchema);
