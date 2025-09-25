@@ -37,7 +37,7 @@ module.exports = function vendorScopePlugin(schema) {
   });
 
   // 🔒 Hide vendor_code and vendor_subdomain in all responses
-  const hiddenFields = ["vendor_code", "vendor_subdomain"];
+  const hiddenFields = ["password"];
 
   schema.set("toJSON", {
     transform: (doc, ret) => {

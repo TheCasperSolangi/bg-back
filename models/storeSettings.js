@@ -44,6 +44,12 @@ const storeSettingsSchema = new mongoose.Schema({
     instagram: { type: String },
     linkedin: { type: String },
     twitter: { type: String },
+    stripe_api_key: {type:String},
+    stripe_api_secret: {type:String},
+    stripe_webhook_secret: {type:String},
+    paypal_mode: {type:String},
+    paypal_client_id: {type:String},
+    paypal_client_secret: {type:String},
     pinterest: { type: String },
     phone: { type: String }, // +CountryCode
     address: { type: String },
@@ -61,3 +67,11 @@ cordinates: [
 }, { timestamps: true });
 storeSettingsSchema.plugin(vendorScopePlugin);
 module.exports = mongoose.model('StoreSettings', storeSettingsSchema);
+
+// //   mode: storeSettings.paypal_mode || 'sandbox',
+//     client_id: storeSettings.paypal_client_id,
+//     client_secret: storeSettings.paypal_client_secret
+
+    // apiKey: storeSettings.stripe_api_key,
+    // apiSecret: storeSettings.stripe_api_secret,
+    // webhookSecret: storeSettings.stripe_webhook_secret

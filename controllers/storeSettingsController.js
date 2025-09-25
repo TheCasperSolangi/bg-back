@@ -7,14 +7,24 @@ exports.getStoreSettings = async (req, res) => {
     const vendorCode = req.headers["x-vendor-code"];
     const vendorSubdomain = req.headers["x-vendor-subdomain"];
 
+    // Define fields to exclude from response
+    const excludedFields =
+      "-stripe_api_key -stripe_api_secret -stripe_webhook_secret -paypal_client_secret -paypal_client_id -paypal_mode";
+
     if (vendorCode) {
       // ✅ Authenticated path → plugin will auto-scope
-      settings = await StoreSettings.findOne();
+      settings = await StoreSettings.findOne().select(excludedFields).lean();
     } else if (vendorSubdomain) {
-      // ✅ Unauthenticated path → manually query by subdomain (bypass plugin scoping)
-      settings = await StoreSettings.findOne({ vendor_subdomain: vendorSubdomain.toLowerCase().trim() }).lean();
+      // ✅ Unauthenticated path → manually query by subdomain
+      settings = await StoreSettings.findOne({
+        vendor_subdomain: vendorSubdomain.toLowerCase().trim(),
+      })
+        .select(excludedFields)
+        .lean();
     } else {
-      return res.status(400).json({ message: "x-vendor-code or x-vendor-subdomain header is required" });
+      return res
+        .status(400)
+        .json({ message: "x-vendor-code or x-vendor-subdomain header is required" });
     }
 
     if (!settings) {

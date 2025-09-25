@@ -47,7 +47,7 @@ app.use(cors({
   origin: true, // Allow all origins
   credentials: true, // Allow credentials
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"]
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept", "x-vendor-subdomain", 'x-vendor-code']
 }));
 
 app.use(tenantMiddleware);

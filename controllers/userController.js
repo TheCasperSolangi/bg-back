@@ -81,19 +81,13 @@ exports.updateUser = async (req, res) => {
     const updates = { ...req.body };
 
     // 🚫 Completely block username & email updates (remove if present)
-    if (updates.username !== undefined) {
-      delete updates.username;
-    }
-    if (updates.email !== undefined) {
-      delete updates.email;
-    }
+    if (updates.username !== undefined) delete updates.username;
+    if (updates.email !== undefined) delete updates.email;
 
-    // Prevent wallet_balance changes via this route
-    if (updates.wallet_balance !== undefined) {
-      return res.status(400).json({ message: 'Not Allowed to Update Wallet Balance please contact administrator' });
-    }
+    // 🚫 Silently ignore wallet_balance updates
+    if (updates.wallet_balance !== undefined) delete updates.wallet_balance;
 
-    // Prevent verification-related fields from being updated
+    // 🚫 Silently remove verification-related fields
     const restrictedFields = [
       "is_verified",
       "is_phone_verified",
@@ -101,9 +95,7 @@ exports.updateUser = async (req, res) => {
       "phone_verified_at"
     ];
     for (const field of restrictedFields) {
-      if (updates[field] !== undefined) {
-        return res.status(400).json({ message: `Not allowed to update ${field}` });
-      }
+      if (updates[field] !== undefined) delete updates[field];
     }
 
     const updatedUser = await User.findOneAndUpdate(
